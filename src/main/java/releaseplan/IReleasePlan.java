@@ -1,0 +1,43 @@
+package releaseplan;
+
+import java.util.List;
+
+
+/**
+ * This interface specifies an abstract release plan
+ */
+public interface IReleasePlan {
+
+    /**
+     *
+     * @return Ids of all releases
+     */
+    List<Integer> getReleases();
+
+    /**
+     * Gets the requirements specified by a releaseId
+     * @param releasePlanId
+     * @return a list of all requirements that are assigned to this release. Returns null if the Id can not be found
+     */
+    List<Integer> getRequirements(Integer releasePlanId);
+
+    /**
+     * Gets the effort of a requirement. Returns null if the Id can not be found
+     * @param requirementId
+     * @return the effort
+     */
+    Integer getRequirementEffort(Integer requirementId);
+
+    /**
+     * Gets all constraints of this releaseplan
+     * @return
+     */
+    List<ConstraintDto> getConstraints();
+
+    /**
+     * Gets the effort of a releas. Returns null if the Id can not be found
+     * @param releaseId
+     * @return the effort
+     */
+    Integer getReleaseEffort(Integer releaseId);
+}
