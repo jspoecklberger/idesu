@@ -2,52 +2,47 @@ package releaseplan;
 
 import org.testng.collections.Lists;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 
 //This class is used to simplify release plan creation.
 //In this IReleaseplan implementation the elements indices act as id so that there is no need to explicitly define ids
+//Note that the release index 0 is for unassigned releases.
+//Not that release capacity has no capacity for unassinged releases.
 public class IndexBasedReleasePlanDto implements IReleasePlan {
 
     public List<Integer> releases = new ArrayList<>();
     public HashMap<Integer, Integer[]> requirements = new HashMap<>();
-    public ArrayList<Integer[]> requirementEffort = new ArrayList<>();
-    public List<ConstraintDto> constraints = new ArrayList<>();
+    public Integer[] releaseRequirementEffort;
     public Integer[] releaseCapacity;
+    Integer[] requirementPriorities;
 
-    public IndexBasedReleasePlanDto(ConstraintDto[] constraints, Integer[] noRequirementsPerRelease) {
-        this(constraints, noRequirementsPerRelease, null, null);
+    public IndexBasedReleasePlanDto(Integer[] noRequirementsPerRelease) {
+        this(noRequirementsPerRelease, null, null, null);
     }
 
-    public IndexBasedReleasePlanDto(ConstraintDto[] constraints, Integer[] noRequirementsPerRelease,
-                                    ArrayList<Integer[]> requirementEffort, Integer[] releaseCapacity) {
-        int k = 1;
+    public IndexBasedReleasePlanDto(Integer[] noRequirementsPerRelease,
+                                    Integer[] requirementEffort, Integer[] releaseCapacity, Integer[] requirementPriorities) {
+        int requirement = 0;
         for (int i = 0; i < noRequirementsPerRelease.length; i++) {
-            releases.add((int) i + 1);
+            releases.add(i);
             Integer[] requirementIds = new Integer[noRequirementsPerRelease[i]];
             for (int j = 0; j < noRequirementsPerRelease[i]; j++) {
-                requirementIds[j] = k++;
+                requirementIds[j] = requirement++;
             }
-            requirements.put((int) i + 1, requirementIds);
+            requirements.put(i, requirementIds);
         }
-        this.requirementEffort = requirementEffort;
-
+        this.releaseRequirementEffort = requirementEffort;
         this.releaseCapacity = releaseCapacity;
-
-        if(constraints != null) {
-            this.constraints = Arrays.asList(constraints);
-        }
+        this.requirementPriorities = requirementPriorities;
     }
 
     @Override
     public List<Integer> getReleases() {
-        return releases;
-    }
-
-    public List<Integer> getRequirements() {
-        return requirements.entrySet().stream().flatMap(listContainer -> Arrays.stream(listContainer.getValue()))
-                .collect(Collectors.toList());
+        return releases.stream().filter(x -> !x.equals(0)).collect(Collectors.toList());
     }
 
     @Override
@@ -58,32 +53,26 @@ public class IndexBasedReleasePlanDto implements IReleasePlan {
     @Override
     public Integer getRequirementEffort(Integer requirementId) {
 
-        if (requirementEffort == null) {
+        if (releaseRequirementEffort == null) {
             return 0;
         }
 
-        int k = 1;
-        for (int i = 0; i < requirementEffort.size(); i++) {
-            for (int j = 0; j < requirementEffort.get(i).length; j++) {
-                if (k == requirementId) {
-                    return requirementEffort.get(i)[j];
-                }
-                k++;
-            }
-        }
-        throw new NoSuchElementException();
+        return releaseRequirementEffort[requirementId];
     }
 
     @Override
-    public ArrayList<ConstraintDto> getConstraints() {
-        if (constraints == null) {
-            return null;
-        }
-        return (ArrayList<ConstraintDto>) constraints.stream().collect(Collectors.toList());
-    }
-
-    @Override
-    public Integer getReleaseEffort(Integer releaseId) {
+    public Integer getReleaseCapacity(Integer releaseId) {
         return releaseCapacity[releaseId - 1];
+    }
+
+
+    @Override
+    public List<Integer> getUnassignedRequirements() {
+        return Lists.newArrayList(((Integer[]) requirements.get(0)));
+    }
+
+    @Override
+    public Integer getRequirementPriority(Integer requirementId) {
+        return requirementPriorities == null ? 1 : requirementPriorities[requirementId];
     }
 }

@@ -10,7 +10,7 @@ public interface IReleasePlan {
 
     /**
      *
-     * @return Ids of all releases
+     * @return Ids of all releases.
      */
     List<Integer> getReleases();
 
@@ -29,15 +29,23 @@ public interface IReleasePlan {
     Integer getRequirementEffort(Integer requirementId);
 
     /**
-     * Gets all constraints of this releaseplan
-     * @return
-     */
-    List<ConstraintDto> getConstraints();
-
-    /**
-     * Gets the effort of a releas. Returns null if the Id can not be found
+     * Gets the effort of a release. Returns null if the Id can not be found
      * @param releaseId
      * @return the effort
      */
-    Integer getReleaseEffort(Integer releaseId);
+    Integer getReleaseCapacity(Integer releaseId);
+
+    /**
+     * Gets the requirements that are not assigned to a release yet.
+     * @return the unassigned requirements
+     */
+    List<Integer> getUnassignedRequirements();
+
+    /**
+     * Gets the priority of a requirement. Returns null if the Id can not be found
+     * A high priority means a low value and vice versa.
+     * @param requirementId
+     * @return the priority
+     */
+    Integer getRequirementPriority(Integer requirementId);
 }

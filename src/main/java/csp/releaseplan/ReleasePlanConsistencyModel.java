@@ -13,70 +13,84 @@ import releaseplan.IReleasePlan;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ReleasePlanModel {
+public class ReleasePlanConsistencyModel {
 
-    ArrayList<ConstraintMapping> constraintMappings_;
+    private ArrayList<ConstraintMapping> constraintMappings_;
     private ConstraintManager constraintManager = new ConstraintManager();
     private IReleasePlan datasource_;
+    private List<ConstraintDto> constraints_;
     private Model m;
     private IntVar[] releasePlan_;
     private List<IntVar[]> requirementEffortByRelease_;
 
-    public ReleasePlanModel(IReleasePlan releasePlan) {
+    public ReleasePlanConsistencyModel(IReleasePlan releasePlan, List<ConstraintDto> constraints) {
         datasource_ = releasePlan;
+        constraints_ = constraints;
     }
 
     public void build() {
 
         m = new Model("Releaseplan");
-        requirementEffortByRelease_ = new ArrayList<>();
 
         List<Integer> nonEmptyReleases = datasource_.getReleases()
                 .stream()
                 .filter(x -> datasource_.getRequirements(x) != null && datasource_.getRequirements(x).size() != 0)
                 .collect(Collectors.toList());
 
-        List<Integer>[] requirementsPerRelease = new ArrayList[nonEmptyReleases.size()];
-        for (int i = 0; i < nonEmptyReleases.size(); i++) {
-            requirementsPerRelease[i] = datasource_.getRequirements(nonEmptyReleases.get(i));
-            int requirements = requirementsPerRelease[i].size();
-            IntVar[] effort = new IntVar[requirements];
-            int k = 0;
-            for (Integer requirement : datasource_.getRequirements(nonEmptyReleases.get(i))) {
-
-                Integer requirementEffort = datasource_.getRequirementEffort(requirement);
-                if (requirementEffort == null)
-                    requirementEffort = 0;
-
-                effort[k] = m.intVar(requirementEffort);
-                k++;
-            }
-            requirementEffortByRelease_.add(effort);
-        }
+        List<Integer>[] requirementsPerRelease = getRequirementsPerRelease(nonEmptyReleases);
+        requirementEffortByRelease_ = modelRequirementEffortByRelease(nonEmptyReleases, requirementsPerRelease);
 
         int noRequirements = Arrays.stream(requirementsPerRelease)
                 .mapToInt(x -> x.size())
                 .sum();
+
         releasePlan_ = new IntVar[noRequirements];
-        int globalRequirementCounter = 0;
-        for (int i = 0; i < nonEmptyReleases.size(); i++) {
-            for (Integer requirement : datasource_.getRequirements(nonEmptyReleases.get(i))) {
-                releasePlan_[globalRequirementCounter++] = m.intVar("release", i + 1);
-            }
-        }
 
         HashMap<Integer, Integer> requirementIdToIndex = new HashMap<>();
         HashMap<Integer, Integer> releaseIdToIndex = new HashMap<>();
-        int requirementIndex = 0;
-        int releaseIndex = 0;
-        for (Integer release : nonEmptyReleases) {
-            releaseIdToIndex.put(release, releaseIndex++);
-            for (Integer requirement : datasource_.getRequirements(release)) {
-                requirementIdToIndex.put(requirement, requirementIndex++);
+
+        int releasePlanRequirementIndex = 0;
+        for (int releasePlanIndex = 0; releasePlanIndex < nonEmptyReleases.size(); releasePlanIndex++) {
+            Integer release = nonEmptyReleases.get(releasePlanIndex);
+            releaseIdToIndex.put(release, releasePlanIndex);
+            for (Integer requirement : datasource_.getRequirements(nonEmptyReleases.get(releasePlanIndex))) {
+                requirementIdToIndex.put(requirement, releasePlanRequirementIndex);
+                releasePlan_[releasePlanRequirementIndex++] = m.intVar("release", releasePlanIndex + 1);
             }
         }
 
-        constraintMappings_ = createConstraints(requirementIdToIndex, datasource_.getConstraints(), releaseIdToIndex);
+        if (constraints_ != null) {
+            constraintMappings_ = createConstraints(requirementIdToIndex, constraints_, releaseIdToIndex);
+        }
+    }
+
+    private List<Integer>[] getRequirementsPerRelease(List<Integer> releases) {
+        List<Integer>[] requirementsPerRelease = new ArrayList[releases.size()];
+        for (int i = 0; i < releases.size(); i++) {
+            requirementsPerRelease[i] = datasource_.getRequirements(releases.get(i));
+        }
+        return requirementsPerRelease;
+    }
+
+    private List<IntVar[]> modelRequirementEffortByRelease(List<Integer> releases, List<Integer>[] requirementsPerRelease) {
+
+        List<IntVar[]> requirementEffortByRelease = new ArrayList<>();
+        for (int i = 0; i < releases.size(); i++) {
+            IntVar[] effort = new IntVar[requirementsPerRelease[i].size()];
+            int k = 0;
+            for (Integer requirement : datasource_.getRequirements(releases.get(i))) {
+                Integer requirementEffort = datasource_.getRequirementEffort(requirement);
+                if (requirementEffort == null) {
+                    requirementEffort = 0;
+                }
+
+                effort[k] = m.intVar(requirementEffort);
+                k++;
+            }
+            requirementEffortByRelease.add(effort);
+        }
+
+        return requirementEffortByRelease;
     }
 
     private ArrayList<ConstraintMapping> createConstraints(HashMap<Integer, Integer> requirementIdToIndex,
@@ -94,11 +108,9 @@ public class ReleasePlanModel {
                 Integer ry = constraintDto.getYid();
 
                 int indexRx = (rx != null && rx > 0) ? requirementIdToIndex.get(rx) : 0;
-                int indexRy = (rx != null && ry != null ) ? requirementIdToIndex.get(ry) : 0;
-
+                int indexRy = (rx != null && ry != null) ? requirementIdToIndex.get(ry) : 0;
 
                 Constraint c = null;
-
                 IntVar x_ = releasePlan_[indexRx];
                 IntVar y_ = releasePlan_[indexRy];
 

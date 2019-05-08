@@ -35,8 +35,18 @@ public class ReleasePlanDto implements IReleasePlan {
     }
 
     @Override
-    public Integer getReleaseEffort(Integer releaseId) {
+    public Integer getReleaseCapacity(Integer releaseId) {
         Optional<ReleaseDto> dt0 = releaseDtos.stream().filter(x -> x.getId().equals(releaseId)).findFirst();
         return dt0.isPresent() ? dt0.get().getCapacity() : 0;
+    }
+
+    @Override
+    public List<Integer> getUnassignedRequirements() {
+        return null;
+    }
+
+    @Override
+    public Integer getRequirementPriority(Integer requirementId) {
+        return null;
     }
 }

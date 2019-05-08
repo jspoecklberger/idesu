@@ -24,7 +24,7 @@ public class ConstraintDtoHelper {
 
         List<ConstraintDto> list = new ArrayList<>();
         for (Integer release : releasePlan.getReleases()) {
-            int releaseCapacity = releasePlan.getReleaseEffort(release);
+            int releaseCapacity = releasePlan.getReleaseCapacity(release);
             if (releaseCapacity > 0) {
                 list.add(ConstraintDtoHelper.createCapacitConstraint(releaseCapacity, release));
             }
