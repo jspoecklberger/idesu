@@ -13,9 +13,6 @@ public class ReleasePlanDto implements IReleasePlan {
 
     private List<RequirementDto> requirements;
     private List<ReleaseDto> releaseDtos;
-    private List<ConstraintDto> constraints;
-    private int capacity;
-
 
     @Override
     public List<Integer> getReleases() {
@@ -24,8 +21,8 @@ public class ReleasePlanDto implements IReleasePlan {
 
     @Override
     public List<Integer> getRequirements(Integer releasePlanId) {
-        return releaseDtos.stream().filter(x -> x.getId().equals(releasePlanId))
-                .map(x -> x.getId()).collect(Collectors.toList());
+        Optional<ReleaseDto> rdto = releaseDtos.stream().filter(x -> x.getId().equals(releasePlanId)).findFirst();
+        return rdto.isPresent() ? rdto.get().getRequirements() : null;
     }
 
     @Override
@@ -47,6 +44,7 @@ public class ReleasePlanDto implements IReleasePlan {
 
     @Override
     public Integer getRequirementPriority(Integer requirementId) {
-        return null;
+        Optional<RequirementDto> dt0 = requirements.stream().filter(x -> x.getId().equals(requirementId)).findFirst();
+        return dt0.isPresent() ? dt0.get().getPriority() : 0;
     }
 }

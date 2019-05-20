@@ -10,6 +10,7 @@ import lombok.NonNull;
 public class RequirementDto {
     private Integer id;
     private int effort;
+    private int priority = 1;
 
     public RequirementDto(Integer id)
     {
