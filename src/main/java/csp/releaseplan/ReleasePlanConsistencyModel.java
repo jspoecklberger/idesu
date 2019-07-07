@@ -13,23 +13,15 @@ import releaseplan.IReleasePlan;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ReleasePlanConsistencyModel {
+public class ReleasePlanConsistencyModel extends BaseModel {
 
-    private ArrayList<ConstraintMapping> constraintMappings_;
-    private ConstraintManager constraintManager = new ConstraintManager();
-    private IReleasePlan datasource_;
-    private List<ConstraintDto> constraints_;
-    private Model m;
-    private IntVar[] releasePlan_;
     private List<IntVar[]> requirementEffortByRelease_;
 
     public ReleasePlanConsistencyModel(IReleasePlan releasePlan, List<ConstraintDto> constraints) {
-        datasource_ = releasePlan;
-        constraints_ = constraints;
+        super(releasePlan, constraints);
     }
 
     public void build() {
-
         m = new Model("Releaseplan");
 
         List<Integer> nonEmptyReleases = datasource_.getReleases()
@@ -209,22 +201,5 @@ public class ReleasePlanConsistencyModel {
                 System.out.println(requirementEffortByRelease_.get(i)[j].getValue());
             }
         }
-    }
-
-    public IReleasePlan getCurrentSolution() {
-
-     /*   int[] rankAss = new int[dto.getNoRequirements()];
-
-        for (int i = 0; i < rankAssignments.length; i++) {
-            rankAss[i] = rankAssignments[i].getValue();
-        }
-
-        ReleasePlan result = new ReleasePlan(dto, rankAss);
- */
-        return null;
-    }
-
-    public boolean checkConsistency() {
-        return m.getSolver().solve();
     }
 }

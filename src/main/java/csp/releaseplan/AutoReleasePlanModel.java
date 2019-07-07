@@ -3,7 +3,6 @@ package csp.releaseplan;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import csp.CommonConstraints;
-import csp.ConstraintManager;
 import csp.ConstraintMapping;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
@@ -16,20 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class AutoReleasePlanModel {
-
-    //bidirectional mapping
-    private BiMap<Integer, Integer> requirementIdToIndex;
-    private BiMap<Integer, Integer> releaseIdToIndex;
-    private List<ConstraintMapping> constraintMappings_;
-    private ConstraintManager constraintManager = new ConstraintManager();
-    private IReleasePlan datasource_;
-    private List<ConstraintDto> constraints_;
-    private Model m;
-    private IntVar[] releasePlan_; //assignes releases to each requirement
-    private IntVar[][] releaseEfforts_; //All Releases all requirements
-    private IntVar objective_;
-    private IntVar[] fitnessReleasePlanAbs;
+public class AutoReleasePlanModel extends BaseModel {
 
     /**
      * This factor is used for soft optimization. A low value means prioritizing a complete plan.
@@ -37,10 +23,15 @@ public class AutoReleasePlanModel {
      * The value is dependent on the priority scaling.
      */
     public int priorityCompletionTradeOffFactor;
+    //bidirectional mapping
+    private BiMap<Integer, Integer> requirementIdToIndex;
+    private BiMap<Integer, Integer> releaseIdToIndex;
+    private IntVar[][] releaseEfforts_; //All Releases all requirements
+    private IntVar objective_;
+    private IntVar[] fitnessReleasePlanAbs;
 
     public AutoReleasePlanModel(IReleasePlan releasePlan, List<ConstraintDto> constraints) {
-        datasource_ = releasePlan;
-        constraints_ = constraints;
+        super(releasePlan, constraints);
         priorityCompletionTradeOffFactor = 5;
     }
 
@@ -245,7 +236,8 @@ public class AutoReleasePlanModel {
     }
 
     /**
-     Gets the Diagnosed Constraints
+     * Gets the Diagnosed Constraints
+     *
      * @return the diagnosed ConstraintMappings.
      */
     public Set<ConstraintMapping> getDiagnosis() {
@@ -289,6 +281,7 @@ public class AutoReleasePlanModel {
 
     /**
      * Gets the current solution as IReleasePlan.
+     *
      * @return the solution.
      */
     public IReleasePlan getSolution() {
@@ -299,7 +292,7 @@ public class AutoReleasePlanModel {
             Integer releaseIndex = getReleaseIndex(releaseId);
             List<Integer> assignedRequirements = new ArrayList<>();
             for (int j = 0; j < releasePlan_.length; j++) {
-                if (releasePlan_[j].getValue() == releaseIndex+1) {
+                if (releasePlan_[j].getValue() == releaseIndex + 1) {
                     assignedRequirements.add(getRequirementId(j));
                 }
             }
@@ -318,12 +311,5 @@ public class AutoReleasePlanModel {
         ReleasePlanDto rp = new ReleasePlanDto(requirementDtos, releaseDtos);
 
         return rp;
-    }
-
-    /**Checks the consistency of the release plan model.
-     * @return
-     */
-    public boolean checkConsistency() {
-        return m.getSolver().solve();
     }
 }
