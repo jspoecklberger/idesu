@@ -197,6 +197,7 @@ public class ReleasePlanConsistencyModel {
     }
 
     public void printCurrentSolution() {
+
         System.out.println("release plan:");
         for (int i = 0; i < releasePlan_.length; i++) {
             System.out.println(releasePlan_[i].getValue());

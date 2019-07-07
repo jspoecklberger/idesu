@@ -54,7 +54,7 @@ public class AutoReleasePlanModelTest {
         Assert.assertTrue(rp.getRequirements(3).get(0) == 5);
         Assert.assertTrue(rp.getUnassignedRequirements() == null || rp.getUnassignedRequirements().size() == 0);
         List<Integer> reqRelease0 = rp.getRequirements(1).stream()
-                .map(x -> rp.getRequirementPriority(x)).collect(Collectors.toList());
+                .map(rp::getRequirementPriority).collect(Collectors.toList());
         Assert.assertTrue(reqRelease0.contains(1) && reqRelease0.contains(2));
 
         m.printCurrentSolution();

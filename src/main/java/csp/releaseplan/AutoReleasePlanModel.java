@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 public class AutoReleasePlanModel {
 
     //bidirectional mapping
-    BiMap<Integer, Integer> requirementIdToIndex;
-    BiMap<Integer, Integer> releaseIdToIndex;
+    private BiMap<Integer, Integer> requirementIdToIndex;
+    private BiMap<Integer, Integer> releaseIdToIndex;
     private List<ConstraintMapping> constraintMappings_;
     private ConstraintManager constraintManager = new ConstraintManager();
     private IReleasePlan datasource_;
@@ -29,40 +29,38 @@ public class AutoReleasePlanModel {
     private IntVar[] releasePlan_; //assignes releases to each requirement
     private IntVar[][] releaseEfforts_; //All Releases all requirements
     private IntVar objective_;
-    private int[] priorities_;
     private IntVar[] fitnessReleasePlanAbs;
-    private IntVar[] fitnessReleasePlanMinus;
-    private IntVar[] fitnessReleasePlan_;
-    private IntVar[] fitnessReleasePlus;
-    private Integer requirementScalingFactor = 5;
+
+    /**
+     * This factor is used for soft optimization. A low value means prioritizing a complete plan.
+     * A high value means prioritizing high priority requirements in early releases.
+     * The value is dependent on the priority scaling.
+     */
+    public int priorityCompletionTradeOffFactor;
 
     public AutoReleasePlanModel(IReleasePlan releasePlan, List<ConstraintDto> constraints) {
         datasource_ = releasePlan;
         constraints_ = constraints;
+        priorityCompletionTradeOffFactor = 5;
     }
 
+    /**
+     * Builds the model defined by the datasource.
+     */
     public void build() {
-
         m = new Model("Releaseplan");
 
-        List<Integer> nonEmptyReleases = datasource_.getReleases()
-                .stream()
-                .collect(Collectors.toList());
-
+        List<Integer> nonEmptyReleases = new ArrayList<>(datasource_.getReleases());
         int noReleases = datasource_.getReleases().size();
-
         List<Integer>[] requirementsPerRelease = getRequirementsPerRelease(nonEmptyReleases);
         int noRequirements = Arrays.stream(requirementsPerRelease)
-                .mapToInt(x -> x.size())
+                .mapToInt(List::size)
                 .sum() + datasource_.getUnassignedRequirements().size();
 
         CreateIdToIndexMappings(nonEmptyReleases);
-
         releasePlan_ = m.intVarArray(noRequirements, 0, noReleases);
-
         modelCapacities(noReleases, noRequirements);
-
-        modelSoftconstraintOptimization(noReleases, noRequirements);
+        modelSoftConstraintOptimization(noReleases, noRequirements);
 
         if (constraints_ != null) {
             constraintMappings_ = createConstraints(constraints_);
@@ -70,8 +68,7 @@ public class AutoReleasePlanModel {
     }
 
     private void modelCapacities(int noReleases, int noRequirements) {
-
-        //we dont model release 0 since it is just a group for unassigned requirements
+        //we dont model release 0 since it is the group for unassigned requirements
         releaseEfforts_ = new IntVar[noReleases][noRequirements];
 
         for (int release = 0; release < noReleases; release++) {
@@ -93,39 +90,41 @@ public class AutoReleasePlanModel {
         }
     }
 
-    private void modelSoftconstraintOptimization(int noReleases, int noRequirements) {
-
-        fitnessReleasePlan_ = m.intVarArray(noRequirements, 1, noReleases + 1);
-        fitnessReleasePlanMinus = new IntVar[noRequirements];
+    private void modelSoftConstraintOptimization(int noReleases, int noRequirements) {
+        //we start by assigning fitness values to each requirement such that requirements assigned to the highest release
+        //yield the lowest base fitness value.
+        IntVar[] fitnessReleasePlan_ = m.intVarArray(noRequirements, 1, noReleases + 1);
+        IntVar[] fitnessReleasePlanMinus = new IntVar[noRequirements];
         fitnessReleasePlanAbs = new IntVar[noRequirements];
-        fitnessReleasePlus = new IntVar[noRequirements];
+        IntVar[] fitnessReleasePlus = new IntVar[noRequirements];
 
-        priorities_ = new int[noRequirements];
+        int[] priorities_ = new int[noRequirements];
         for (int i = 0; i < fitnessReleasePlan_.length; i++) {
-
+            //Some transformation to get the right order.
             fitnessReleasePlanMinus[i] = m.intOffsetView(releasePlan_[i], -(noReleases + 1));
             fitnessReleasePlanAbs[i] = m.intAbsView(fitnessReleasePlanMinus[i]);
             fitnessReleasePlus[i] = m.intOffsetView(fitnessReleasePlanAbs[i], 1);
+            //Unfortunately, there is no 'where'-clause in Choco as for example in MiniZinc.
+            //Therefore we have to model the assignment of fitness values like this:
             m.ifThenElse(m.arithm(fitnessReleasePlus[i], "=", noReleases + 2),
                     m.arithm(fitnessReleasePlan_[i], "=", 0),
                     m.arithm(fitnessReleasePlan_[i], "=", fitnessReleasePlus[i]));
 
-            priorities_[i] = requirementScalingFactor * datasource_.getRequirementPriority(getRequirementId(i));
+            priorities_[i] = priorityCompletionTradeOffFactor * datasource_.getRequirementPriority(getRequirementId(i));
         }
 
+        int maxPriority = Arrays.stream(priorities_).max().getAsInt();
         IntVar[] fitnessValues = m.intVarArray(noRequirements, 0,
-                Arrays.stream(priorities_).max().getAsInt() * requirementScalingFactor * noReleases);
-        objective_ = m.intVar("objective", 0, noRequirements * requirementScalingFactor * noReleases * noReleases);
+                Arrays.stream(priorities_).max().getAsInt() * priorityCompletionTradeOffFactor * noReleases);
+        objective_ = m.intVar("objective", 0, noRequirements * priorityCompletionTradeOffFactor * noReleases * noReleases);
         for (int requirement = 0; requirement < noRequirements; requirement++) {
             m.times(fitnessReleasePlan_[requirement], priorities_[requirement], fitnessValues[requirement]).post();
         }
-
         m.sum(fitnessValues, "=", objective_).post();
-
         setObjective();
     }
 
-    public void setObjective() {
+    private void setObjective() {
         if (objective_ != null) {
             m.setObjective(Model.MAXIMIZE, objective_);
             m.getSolver().limitSolution(1);
@@ -149,7 +148,6 @@ public class AutoReleasePlanModel {
     }
 
     private void CreateIdToIndexMappings(List<Integer> nonEmptyReleases) {
-
         //create mapping between external ids and internal index
         requirementIdToIndex = HashBiMap.create();
         releaseIdToIndex = HashBiMap.create();
@@ -216,13 +214,6 @@ public class AutoReleasePlanModel {
                     case NOT_EARLIER_THAN:
                         c = CommonConstraints.createNotEarlierThan(m, x_, y_);
                         break;
-                  /*  case AT_MOST_ONE_A:
-                        c = null;// CommonConstraints.createAt(m, x_, y_);
-                        break;
-                    case VALUE_DEPENDENCY:
-                       c = CommonConstraints.createEqual(m, x_, y_);
-                      break;
-                  */
                     case FIXED:
                         c = CommonConstraints.createFixed(m, x_, constraintDto.getK());
                         break;
@@ -253,6 +244,10 @@ public class AutoReleasePlanModel {
         return result;
     }
 
+    /**
+     Gets the Diagnosed Constraints
+     * @return the diagnosed ConstraintMappings.
+     */
     public Set<ConstraintMapping> getDiagnosis() {
 
         Set<ConstraintMapping> Diagnosis = null;
@@ -271,14 +266,14 @@ public class AutoReleasePlanModel {
         return diagnosis.stream().map(x -> x.dto).collect(Collectors.toList());
     }
 
+    /**
+     * prints the current solution.
+     */
     public void printCurrentSolution() {
-
         System.out.println("release plan:");
         for (int i = 0; i < releasePlan_.length; i++) {
             System.out.println(releasePlan_[i].getValue()
-                    + "(" + fitnessReleasePlan_[i].getValue() + ")"
-                    + "(" + fitnessReleasePlanMinus[i].getValue() + ")"
-                    + "(" + fitnessReleasePlanAbs[i].getValue() + ")");
+                    + "(fitness value" + fitnessReleasePlanAbs[i].getValue() + ")");
         }
         if (objective_ != null) {
             System.out.println("fitness value:" + objective_.getValue());
@@ -292,6 +287,10 @@ public class AutoReleasePlanModel {
         }
     }
 
+    /**
+     * Gets the current solution as IReleasePlan.
+     * @return the solution.
+     */
     public IReleasePlan getSolution() {
         List<Integer> releases = datasource_.getReleases();
         List<ReleaseDto> releaseDtos = new ArrayList<>();
@@ -321,6 +320,9 @@ public class AutoReleasePlanModel {
         return rp;
     }
 
+    /**Checks the consistency of the release plan model.
+     * @return
+     */
     public boolean checkConsistency() {
         return m.getSolver().solve();
     }

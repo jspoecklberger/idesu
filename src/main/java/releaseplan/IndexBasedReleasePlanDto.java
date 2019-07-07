@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 //This class is used to simplify release plan creation.
 //In this IReleaseplan implementation the elements indices act as id so that there is no need to explicitly define ids
 //Note that the release index 0 is for unassigned releases.
-//Not that release capacity has no capacity for unassinged releases.
+//Also, note that release 0 doesnt have a capacity for unassinged releases.
 public class IndexBasedReleasePlanDto implements IReleasePlan {
 
     public List<Integer> releases = new ArrayList<>();

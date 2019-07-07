@@ -26,7 +26,8 @@ public class ConstraintManager {
         Set<Constraint> weightedC = getWeightSortedDiagnoseableConstraints(mappings);
         Set<Constraint> diagnosis = alg.fastDiagChoco(weightedC, model, print);
         if (diagnosis == null || diagnosis.size() == 0) {
-            System.out.println("could not find diagnoses");
+            if (print)
+                System.out.println("could not find diagnoses");
             return null;
         }
         if (print) {
