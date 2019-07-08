@@ -2,10 +2,10 @@ package csp.releaseplan;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import releaseplan.ConstraintDto;
-import releaseplan.ConstraintDtoHelper;
+import releaseplan.Constraint;
+import releaseplan.ConstraintHelper;
 import releaseplan.IReleasePlan;
-import releaseplan.IndexBasedReleasePlanDto;
+import releaseplan.IndexBasedReleasePlan;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,13 +19,13 @@ public class AutoReleasePlanModelTest {
         Integer[] releaseCapacity = new Integer[]{4, 3, 4};
         Integer[] requirementEfforts = new Integer[]{1, 1, 1, 2, 1, 4};
 
-        IndexBasedReleasePlanDto dto = new IndexBasedReleasePlanDto(
+        IndexBasedReleasePlan dto = new IndexBasedReleasePlan(
                 noRequirementsPerRelease, requirementEfforts, releaseCapacity
                 , null);
 
-        List<ConstraintDto> constraintDtos = ConstraintDtoHelper.createCapacityConstraintDtos(dto);
+        List<Constraint> constraints = ConstraintHelper.createCapacityConstraints(dto);
 
-        AutoReleasePlanModel m = new AutoReleasePlanModel(dto, constraintDtos);
+        AutoReleasePlanModel m = new AutoReleasePlanModel(dto, constraints);
         m.build();
         Assert.assertNull(m.getDiagnosis());
 
@@ -40,13 +40,13 @@ public class AutoReleasePlanModelTest {
         Integer[] requirementEfforts = new Integer[]{1, 1, 1, 2, 2, 4};
         Integer[] requirementPriorities = new Integer[]{1, 1, 1, 2, 2, 3};
 
-        IndexBasedReleasePlanDto dto = new IndexBasedReleasePlanDto(
+        IndexBasedReleasePlan dto = new IndexBasedReleasePlan(
                 noRequirementsPerRelease, requirementEfforts, releaseCapacity
                 , requirementPriorities);
 
-        List<ConstraintDto> constraintDtos = ConstraintDtoHelper.createCapacityConstraintDtos(dto);
+        List<Constraint> constraints = ConstraintHelper.createCapacityConstraints(dto);
 
-        AutoReleasePlanModel m = new AutoReleasePlanModel(dto, constraintDtos);
+        AutoReleasePlanModel m = new AutoReleasePlanModel(dto, constraints);
         m.build();
         Assert.assertNull(m.getDiagnosis());
         IReleasePlan rp = m.getSolution();

@@ -1,18 +1,14 @@
 package csp;
 
 import lombok.Data;
-import org.chocosolver.solver.constraints.Constraint;
-import releaseplan.ConstraintDto;
-
-import java.util.ArrayList;
-import java.util.List;
+import releaseplan.Constraint;
 
 //Maps dtos to an applied choco constraint
 @Data
 public class ConstraintMapping {
 
-    public Constraint c;
-    public ConstraintDto dto;
+    public org.chocosolver.solver.constraints.Constraint c;
+    public Constraint dto;
 
     public int getWeight()
     {

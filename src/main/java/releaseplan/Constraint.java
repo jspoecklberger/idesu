@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class ConstraintDto {
+public class Constraint {
 
     private ConstraintType type;
 

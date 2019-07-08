@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReleaseDto {
+public class Release {
     private Integer id;
     private List<Integer> requirements;
     private Integer capacity;

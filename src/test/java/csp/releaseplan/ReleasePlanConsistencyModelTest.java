@@ -2,10 +2,10 @@ package csp.releaseplan;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import releaseplan.ConstraintDto;
-import releaseplan.ConstraintDtoHelper;
+import releaseplan.Constraint;
+import releaseplan.ConstraintHelper;
 import releaseplan.ConstraintType;
-import releaseplan.IndexBasedReleasePlanDto;
+import releaseplan.IndexBasedReleasePlan;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,16 +18,16 @@ public class ReleasePlanConsistencyModelTest {
         Integer[] releaseCapacity = new Integer[]{4, 3, 4};
         Integer[] requirementEfforts = new Integer[]{1, 1, 1, 2, 1, 4};
 
-        IndexBasedReleasePlanDto dto = new IndexBasedReleasePlanDto(noRequirementsPerRelease, requirementEfforts, releaseCapacity, null);
-        List<ConstraintDto> constraintDtos = ConstraintDtoHelper.createCapacityConstraintDtos(dto);
+        IndexBasedReleasePlan dto = new IndexBasedReleasePlan(noRequirementsPerRelease, requirementEfforts, releaseCapacity, null);
+        List<Constraint> constraints = ConstraintHelper.createCapacityConstraints(dto);
 
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(1, ConstraintType.LOWER_EQUAL_THAN, 0, 1));
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(2, ConstraintType.LOWER_THAN, 0, 3));
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(3, ConstraintType.GREATER_EQUAL_THAN, 3, 0));
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(3, ConstraintType.GREATER_EQUAL_THAN, 4, 3));
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(3, ConstraintType.NOT_EQUAL, 4, 5));
+        constraints.add(ConstraintHelper.createBinaryDependency(1, ConstraintType.LOWER_EQUAL_THAN, 0, 1));
+        constraints.add(ConstraintHelper.createBinaryDependency(2, ConstraintType.LOWER_THAN, 0, 3));
+        constraints.add(ConstraintHelper.createBinaryDependency(3, ConstraintType.GREATER_EQUAL_THAN, 3, 0));
+        constraints.add(ConstraintHelper.createBinaryDependency(3, ConstraintType.GREATER_EQUAL_THAN, 4, 3));
+        constraints.add(ConstraintHelper.createBinaryDependency(3, ConstraintType.NOT_EQUAL, 4, 5));
 
-        ReleasePlanConsistencyModel m = new ReleasePlanConsistencyModel(dto, constraintDtos);
+        ReleasePlanConsistencyModel m = new ReleasePlanConsistencyModel(dto, constraints);
         m.build();
         Assert.assertNull(m.getDiagnosis());
 
@@ -40,12 +40,12 @@ public class ReleasePlanConsistencyModelTest {
         Integer[] releaseCapacity = new Integer[]{3, 4};
         Integer[] requirementEfforts = new Integer[]{3, 3, 3};
 
-        IndexBasedReleasePlanDto dto = new IndexBasedReleasePlanDto(noRequirementsPerRelease, requirementEfforts, releaseCapacity, null);
-        List<ConstraintDto> constraintDtos = ConstraintDtoHelper.createCapacityConstraintDtos(dto);
+        IndexBasedReleasePlan dto = new IndexBasedReleasePlan(noRequirementsPerRelease, requirementEfforts, releaseCapacity, null);
+        List<Constraint> constraints = ConstraintHelper.createCapacityConstraints(dto);
 
-        ReleasePlanConsistencyModel m = new ReleasePlanConsistencyModel(dto, constraintDtos);
+        ReleasePlanConsistencyModel m = new ReleasePlanConsistencyModel(dto, constraints);
         m.build();
-        Assert.assertTrue(m.getDiagnosisDtos().get(0).getType() == ConstraintType.CAPACITY);
+        Assert.assertTrue(m.getDiagnosedConstraints().get(0).getType() == ConstraintType.CAPACITY);
     }
 
 
@@ -55,13 +55,13 @@ public class ReleasePlanConsistencyModelTest {
         Integer[] releaseCapacity = new Integer[]{3, 4};
         Integer[] requirementEfforts = new Integer[]{3, 3, 3};
 
-        IndexBasedReleasePlanDto dto = new IndexBasedReleasePlanDto(noRequirementsPerRelease, requirementEfforts, releaseCapacity, null);
-        List<ConstraintDto> constraintDtos = new ArrayList<>();
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(1, ConstraintType.LOWER_THAN, 0, 1));
-        constraintDtos.add(ConstraintDtoHelper.createBinaryDependency(3, ConstraintType.EQUAL, 0, 1));
+        IndexBasedReleasePlan dto = new IndexBasedReleasePlan(noRequirementsPerRelease, requirementEfforts, releaseCapacity, null);
+        List<Constraint> constraints = new ArrayList<>();
+        constraints.add(ConstraintHelper.createBinaryDependency(1, ConstraintType.LOWER_THAN, 0, 1));
+        constraints.add(ConstraintHelper.createBinaryDependency(3, ConstraintType.EQUAL, 0, 1));
 
-        ReleasePlanConsistencyModel m = new ReleasePlanConsistencyModel(dto, constraintDtos);
+        ReleasePlanConsistencyModel m = new ReleasePlanConsistencyModel(dto, constraints);
         m.build();
-        Assert.assertTrue(m.getDiagnosisDtos().size() == 1);
+        Assert.assertTrue(m.getDiagnosedConstraints().size() == 1);
     }
 }

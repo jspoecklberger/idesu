@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 //In this IReleaseplan implementation the elements indices act as id so that there is no need to explicitly define ids
 //Note that the release index 0 is for unassigned releases.
 //Also, note that release 0 doesnt have a capacity for unassinged releases.
-public class IndexBasedReleasePlanDto implements IReleasePlan {
+public class IndexBasedReleasePlan implements IReleasePlan {
 
     public List<Integer> releases = new ArrayList<>();
     public HashMap<Integer, Integer[]> requirements = new HashMap<>();
@@ -20,12 +20,12 @@ public class IndexBasedReleasePlanDto implements IReleasePlan {
     public Integer[] releaseCapacity;
     Integer[] requirementPriorities;
 
-    public IndexBasedReleasePlanDto(Integer[] noRequirementsPerRelease) {
+    public IndexBasedReleasePlan(Integer[] noRequirementsPerRelease) {
         this(noRequirementsPerRelease, null, null, null);
     }
 
-    public IndexBasedReleasePlanDto(Integer[] noRequirementsPerRelease,
-                                    Integer[] requirementEffort, Integer[] releaseCapacity, Integer[] requirementPriorities) {
+    public IndexBasedReleasePlan(Integer[] noRequirementsPerRelease,
+                                 Integer[] requirementEffort, Integer[] releaseCapacity, Integer[] requirementPriorities) {
         int requirement = 0;
         for (int i = 0; i < noRequirementsPerRelease.length; i++) {
             releases.add(i);

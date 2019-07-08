@@ -7,12 +7,12 @@ import lombok.NonNull;
 
 @Data
 @AllArgsConstructor
-public class RequirementDto {
+public class Requirement {
     private Integer id;
     private int effort;
     private int priority = 1;
 
-    public RequirementDto(Integer id)
+    public Requirement(Integer id)
     {
         this.id = id;
     }

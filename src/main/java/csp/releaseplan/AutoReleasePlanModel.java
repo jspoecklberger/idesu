@@ -5,7 +5,6 @@ import com.google.common.collect.HashBiMap;
 import csp.CommonConstraints;
 import csp.ConstraintMapping;
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
 import releaseplan.*;
 
@@ -30,7 +29,7 @@ public class AutoReleasePlanModel extends BaseModel {
     private IntVar objective_;
     private IntVar[] fitnessReleasePlanAbs;
 
-    public AutoReleasePlanModel(IReleasePlan releasePlan, List<ConstraintDto> constraints) {
+    public AutoReleasePlanModel(IReleasePlan releasePlan, List<Constraint> constraints) {
         super(releasePlan, constraints);
         priorityCompletionTradeOffFactor = 5;
     }
@@ -42,13 +41,17 @@ public class AutoReleasePlanModel extends BaseModel {
         m = new Model("Releaseplan");
 
         List<Integer> nonEmptyReleases = new ArrayList<>(datasource_.getReleases());
+        CreateIdToIndexMappings(nonEmptyReleases);
+
         int noReleases = datasource_.getReleases().size();
+        int noUnassignedRequirements = datasource_.getUnassignedRequirements() == null ?
+                0 : datasource_.getUnassignedRequirements().size();
+
         List<Integer>[] requirementsPerRelease = getRequirementsPerRelease(nonEmptyReleases);
         int noRequirements = Arrays.stream(requirementsPerRelease)
                 .mapToInt(List::size)
-                .sum() + datasource_.getUnassignedRequirements().size();
+                .sum() + noUnassignedRequirements;
 
-        CreateIdToIndexMappings(nonEmptyReleases);
         releasePlan_ = m.intVarArray(noRequirements, 0, noReleases);
         modelCapacities(noReleases, noRequirements);
         modelSoftConstraintOptimization(noReleases, noRequirements);
@@ -151,35 +154,41 @@ public class AutoReleasePlanModel extends BaseModel {
                 requirementIdToIndex.put(requirement, releasePlanRequirementIndex++);
             }
         }
-        for (Integer requirement : datasource_.getUnassignedRequirements()) {
-            requirementIdToIndex.put(requirement, releasePlanRequirementIndex++);
+
+        if (datasource_.getUnassignedRequirements() != null) {
+            for (Integer requirement : datasource_.getUnassignedRequirements()) {
+                requirementIdToIndex.put(requirement, releasePlanRequirementIndex++);
+            }
         }
     }
-
     private List<Integer>[] getRequirementsPerRelease(List<Integer> releases) {
         List<Integer>[] requirementsPerRelease = new ArrayList[releases.size()];
         for (int i = 0; i < releases.size(); i++) {
-            requirementsPerRelease[i] = datasource_.getRequirements(releases.get(i));
+            List<Integer> reqs = datasource_.getRequirements(releases.get(i));
+            if (reqs != null) {
+                requirementsPerRelease[i] = new ArrayList<>(reqs);
+            }
         }
         return requirementsPerRelease;
     }
 
-    private ArrayList<ConstraintMapping> createConstraints(List<ConstraintDto> dtos) {
+    private ArrayList<ConstraintMapping> createConstraints(List<Constraint> dtos) {
 
         ArrayList<ConstraintMapping> result = new ArrayList<>();
         if (dtos != null) {
             for (int i = 0; i < dtos.size(); i++) {
-                ConstraintDto constraintDto = dtos.get(i);
-                ConstraintType ctype = constraintDto.getType();
+                Constraint constraint = dtos.get(i);
+                ConstraintType ctype = constraint.getType();
 
                 ConstraintMapping mapping = new ConstraintMapping();
-                Integer rx = constraintDto.getXid();
-                Integer ry = constraintDto.getYid();
+                Integer rx = constraint.getXid();
+                Integer ry = constraint.getYid();
 
-                int indexRx = (rx != null && rx > 0) ? requirementIdToIndex.get(rx) : 0;
+                int indexRx = (rx != null && rx > 0) ? (constraint.getType() == ConstraintType.CAPACITY ?
+                        releaseIdToIndex.get(rx) : requirementIdToIndex.get(rx)) : 0;
                 int indexRy = (rx != null && ry != null) ? requirementIdToIndex.get(ry) : 0;
 
-                Constraint c = null;
+                org.chocosolver.solver.constraints.Constraint c = null;
                 IntVar x_ = releasePlan_[indexRx];
                 IntVar y_ = releasePlan_[indexRy];
 
@@ -197,7 +206,7 @@ public class AutoReleasePlanModel extends BaseModel {
                         c = CommonConstraints.createAtLeastOneIsNotNull(m, x_, y_);
                         break;
                     case AT_LEASTONE_A:
-                        c = CommonConstraints.createAtLeastOneHasValueK(m, x_, y_, constraintDto.getK());
+                        c = CommonConstraints.createAtLeastOneHasValueK(m, x_, y_, constraint.getK());
                         break;
                     case NO_LATER_THAN:
                         c = CommonConstraints.createNoLaterThan(m, x_, y_);
@@ -206,7 +215,7 @@ public class AutoReleasePlanModel extends BaseModel {
                         c = CommonConstraints.createNotEarlierThan(m, x_, y_);
                         break;
                     case FIXED:
-                        c = CommonConstraints.createFixed(m, x_, constraintDto.getK());
+                        c = CommonConstraints.createFixed(m, x_, constraint.getK());
                         break;
                     case EXCLUDES:
                         c = CommonConstraints.createDifferent(m, x_, y_);
@@ -223,9 +232,15 @@ public class AutoReleasePlanModel extends BaseModel {
                     case GREATER_EQUAL_THAN:
                         c = CommonConstraints.createWeakPrecedence(m, y_, x_);
                         break;
+                    case CAPACITY:
+                        break;
+                      /*  Integer maxCapacity = constraint.getCapacity();
+                        int indexRelease = releaseIdToIndex.getOrDefault(constraint.getXid(), -1);
+                        c = CommonConstraints.createCapacity(m, maxCapacity, releaseEfforts_[indexRelease]);
+*/
                 }
                 if (c != null) {   // throw new Exception("Constrainttype not found in this model");
-                    mapping.dto = constraintDto;
+                    mapping.dto = constraint;
                     mapping.c = c;
                     c.post();
                     result.add(mapping);
@@ -244,12 +259,13 @@ public class AutoReleasePlanModel extends BaseModel {
 
         Set<ConstraintMapping> Diagnosis = null;
         if (!checkConsistency()) {
+            m.clearObjective();
             Diagnosis = constraintManager.getDiagnosis(m, constraintMappings_, false);
         }
         return Diagnosis;
     }
 
-    public List<ConstraintDto> getDiagnosisDtos() {
+    public List<Constraint> getDiagnosedConstraints() {
 
         Set<ConstraintMapping> diagnosis = getDiagnosis();
         if (diagnosis == null) {
@@ -286,7 +302,7 @@ public class AutoReleasePlanModel extends BaseModel {
      */
     public IReleasePlan getSolution() {
         List<Integer> releases = datasource_.getReleases();
-        List<ReleaseDto> releaseDtos = new ArrayList<>();
+        List<Release> releaseDtos = new ArrayList<>();
         for (int i = 0; i < releases.size(); i++) {
             Integer releaseId = releases.get(i);
             Integer releaseIndex = getReleaseIndex(releaseId);
@@ -296,19 +312,19 @@ public class AutoReleasePlanModel extends BaseModel {
                     assignedRequirements.add(getRequirementId(j));
                 }
             }
-            ReleaseDto dto = new ReleaseDto(releaseId, assignedRequirements, datasource_.getReleaseCapacity(releaseId));
+            Release dto = new Release(releaseId, assignedRequirements, datasource_.getReleaseCapacity(releaseId));
             releaseDtos.add(dto);
         }
-        List<RequirementDto> requirementDtos = new ArrayList<>();
+        List<Requirement> requirements = new ArrayList<>();
         for (int i = 0; i < releasePlan_.length; i++) {
             Integer id = getRequirementId(i);
-            RequirementDto requirementDto = new RequirementDto(id,
+            Requirement requirement = new Requirement(id,
                     datasource_.getRequirementEffort(id),
                     datasource_.getRequirementPriority(id));
-            requirementDtos.add(requirementDto);
+            requirements.add(requirement);
         }
 
-        ReleasePlanDto rp = new ReleasePlanDto(requirementDtos, releaseDtos);
+        SimpleReleasePlan rp = new SimpleReleasePlan(requirements, releaseDtos);
 
         return rp;
     }
