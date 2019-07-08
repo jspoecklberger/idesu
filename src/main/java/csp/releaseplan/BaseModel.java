@@ -19,8 +19,8 @@ public abstract class BaseModel {
 
     protected IReleasePlan datasource_;
 
-    protected List<ConstraintMapping> constraintMappings_;
-    protected ConstraintManager constraintManager = new ConstraintManager();
+    //protected List<ConstraintMapping> constraintMappings_;
+    protected ConstraintManager constraintManager;
 
     protected List<Constraint> constraints_;
     protected Model m;
@@ -39,6 +39,11 @@ public abstract class BaseModel {
      */
     public boolean checkConsistency() {
         return m.getSolver().solve();
+    }
+
+    public ConstraintManager getConstraintManager()
+    {
+        return constraintManager;
     }
 
 

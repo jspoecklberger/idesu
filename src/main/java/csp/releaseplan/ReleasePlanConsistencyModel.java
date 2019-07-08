@@ -1,6 +1,7 @@
 package csp.releaseplan;
 
 import csp.CommonConstraints;
+import csp.ConstraintManager;
 import csp.ConstraintMapping;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.variables.IntVar;
@@ -49,11 +50,12 @@ public class ReleasePlanConsistencyModel extends BaseModel {
             }
         }
 
+        List<ConstraintMapping> constraintMappings_ = null;
         if (constraints_ != null) {
             constraintMappings_ = createConstraints(requirementIdToIndex, constraints_, releaseIdToIndex);
         }
+        constraintManager = new ConstraintManager(m, constraintMappings_);
     }
-
 
 
     private List<Integer>[] getRequirementsPerRelease(List<Integer> releases) {
@@ -171,7 +173,7 @@ public class ReleasePlanConsistencyModel extends BaseModel {
 
         Set<ConstraintMapping> Diagnosis = null;
         if (!checkConsistency()) {
-            Diagnosis = constraintManager.getDiagnosis(m, constraintMappings_, false);
+            Diagnosis = constraintManager.getDiagnosis(false);
         }
         return Diagnosis;
     }

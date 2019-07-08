@@ -62,6 +62,10 @@ public class IndexBasedReleasePlan implements IReleasePlan {
 
     @Override
     public Integer getReleaseCapacity(Integer releaseId) {
+
+        if(releaseCapacity == null)
+            return 0;
+
         return releaseCapacity[releaseId - 1];
     }
 

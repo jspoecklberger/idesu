@@ -37,7 +37,7 @@ public class SimpleReleasePlanTest {
         Assert.assertFalse(m.checkConsistency());
 
         List<Constraint> diagnosis = m.getDiagnosedConstraints();
-        Assert.assertTrue(diagnosis.size() == 1 && diagnosis.get(0).getConstraintId() == 10);
+        Assert.assertTrue(diagnosis.size() == 1 && diagnosis.get(0).getXid() == 10);
 
         constraints.removeIf(x -> m.getDiagnosedConstraints().stream().anyMatch(x::equals));
         m.build();

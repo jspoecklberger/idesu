@@ -3,6 +3,7 @@ package csp.releaseplan;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import csp.CommonConstraints;
+import csp.ConstraintManager;
 import csp.ConstraintMapping;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.variables.IntVar;
@@ -38,6 +39,7 @@ public class AutoReleasePlanModel extends BaseModel {
      * Builds the model defined by the datasource.
      */
     public void build() {
+
         m = new Model("Releaseplan");
 
         List<Integer> nonEmptyReleases = new ArrayList<>(datasource_.getReleases());
@@ -56,9 +58,12 @@ public class AutoReleasePlanModel extends BaseModel {
         modelCapacities(noReleases, noRequirements);
         modelSoftConstraintOptimization(noReleases, noRequirements);
 
+
+        List<ConstraintMapping> constraintMappings_ = null;
         if (constraints_ != null) {
             constraintMappings_ = createConstraints(constraints_);
         }
+        constraintManager = new ConstraintManager(m, constraintMappings_);
     }
 
     private void modelCapacities(int noReleases, int noRequirements) {
@@ -260,7 +265,7 @@ public class AutoReleasePlanModel extends BaseModel {
         Set<ConstraintMapping> Diagnosis = null;
         if (!checkConsistency()) {
             m.clearObjective();
-            Diagnosis = constraintManager.getDiagnosis(m, constraintMappings_, false);
+            Diagnosis = constraintManager.getDiagnosis(false);
         }
         return Diagnosis;
     }
@@ -272,6 +277,22 @@ public class AutoReleasePlanModel extends BaseModel {
             return null;
         }
         return diagnosis.stream().map(x -> x.dto).collect(Collectors.toList());
+    }
+
+
+    /**
+     * Gets the Conflicted Constraints
+     *
+     * @return the conflicted ConstraintMappings.
+     */
+    public Set<ConstraintMapping> getConflicts() {
+
+        Set<ConstraintMapping> Diagnosis = null;
+        if (!checkConsistency()) {
+            m.clearObjective();
+            Diagnosis = constraintManager.getConflicts(false);
+        }
+        return Diagnosis;
     }
 
     /**

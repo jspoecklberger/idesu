@@ -1,6 +1,6 @@
 # Simple release planning
 
-A project to simplify release planning based on constraint satisfaction.
+A project that aims to simplify release planning based on constraint satisfaction.
 
 This library consists of an interface to a release plan model, a constraint solving model, and a toolkit for conflict and diagnosis handling. The interface is used as a contract for your model based on releases, requirements and constraints.
 The model is then solved using a constraint solving approach based on choco library. <link>
@@ -33,7 +33,8 @@ First, we define our model by instanciating an instance of SimpleReleasePlan whi
         SimpleReleasePlan plan = new SimpleReleasePlan(requirements, releases);
 ```
 
-Next, we create some constraints that we want to add.
+Next, we create some constraints that we want to add. 
+Note that previously defined release capacities do not implicitly create constraints
 
 ```
  List<Constraint> constraints = ConstraintHelper.createCapacityConstraints(plan);
@@ -64,8 +65,6 @@ Assert.assertTrue(m.checkConsistency()); //true
 ```
 
 Further usage examples can be looked up in the tests!
-
-
 
 ## Built With
 
