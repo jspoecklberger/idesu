@@ -56,7 +56,7 @@ List<Constraint> diagnosis = m.getDiagnosedConstraints();
 Assert.assertTrue(diagnosis.size() == 1);
 Assert.assertTrue(diagnosis.get(0).getConstraintId() == 10);
 ```
-Finally, we remove the diagnosed constraints check for consistency again.
+Finally, we remove the diagnosed constraints and check for consistency again.
 
 ```
 constraints.removeIf(x -> m.getDiagnosedConstraints().stream().anyMatch(x::equals));
